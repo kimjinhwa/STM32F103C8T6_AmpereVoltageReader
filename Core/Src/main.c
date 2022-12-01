@@ -58,6 +58,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_I2C2_Init(void);
 void StartDefaultTask(void const * argument);
 
+uint8_t receive_buffer[20];
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -73,6 +74,12 @@ void StartDefaultTask(void const * argument);
   */
 
 #include "stm32f1xx_hal_flash.h"
+uint16_t uartRecieCount=0;
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	//osMessagePut(ModBusInHandle,buffer[iii],0);
+	uartRecieCount++;
+}
 
 HAL_StatusTypeDef HAL_UART_Transmit_IT_485(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size){
 	HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
@@ -360,6 +367,34 @@ static void MX_GPIO_Init(void)
  */
 /* USER CODE END Header_StartDefaultTask */
 //extern osMessageQId ModBusInHandle;
+void ReceiveErrorFromUsart(){
+	while(HAL_OK !=  HAL_UART_Receive(&huart1, receive_buffer,1, 33));
+}
+void ReadUsartAndMessagePut(){
+	uint16_t iPos=0;
+	iPos++;  //We Receive 1 Byte from Rx interrupt
+
+	//int16_t address_485=  * ((uint16_t *) FLASH_USER_START_ADDR);
+//	osMessagePut(ModBusInHandle,receive_buffer[iPos++],0);
+//	if(HAL_OK !=  HAL_UART_Receive(&huart1, receive_buffer,1, 33)){
+//		ReceiveErrorFromUsart();
+//		return;
+//	}
+	// Check ID
+//	if(receive_buffer[0] != address_485 ){
+//		ReceiveErrorFromUsart();
+//		return;
+//	}
+	// Now We Receive data until timeout reached
+	while(HAL_OK == HAL_UART_Receive(&huart1, (uint8_t *)&receive_buffer[iPos],1, 5)){ // 5 miliscecon
+			iPos++;
+	}
+
+	for(int iii=0;iii<iPos;iii++){
+		osMessagePut(ModBusInHandle,receive_buffer[iii],0);
+	}
+
+}
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
@@ -393,23 +428,29 @@ void StartDefaultTask(void const * argument)
 		}
 		*/
       /*  Test for 5 command change 485 ID */
-		uint8_t iii=0;
-      	osDelay(1000);
-		buffer[iii++]=0x01;
-		buffer[iii++]=0x05;
-		buffer[iii++]=0x00;
-		buffer[iii++]=0x00;
-		buffer[iii++]=0x00;
-		buffer[iii++]=0x02;  // 2로 바꿔라.
-		buffer[iii++]=0x4c;
-		buffer[iii++]=0x0b;
-		for(iii=0;iii<8;iii++){
-			osMessagePut(ModBusInHandle,buffer[iii],0);
-		}
-	  HAL_UART_Transmit_IT_485(&huart1, buffer, iii );
+//		uint8_t iii=0;
+//      	osDelay(1000);
+//		buffer[iii++]=0x01;
+//		buffer[iii++]=0x05;
+//		buffer[iii++]=0x00;
+//		buffer[iii++]=0x00;
+//		buffer[iii++]=0x00;
+//		buffer[iii++]=0x02;  // 2로 바꿔라.
+//		buffer[iii++]=0x4c;
+//		buffer[iii++]=0x0b;
+//		for(iii=0;iii<8;iii++){
+//			osMessagePut(ModBusInHandle,buffer[iii],0);
+//		}
+//	  HAL_UART_Transmit_IT_485(&huart1, buffer, iii );
     }
+
+    HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
     for (;;)
     {
+    	if( uartRecieCount>0){ // We are received Data from USART
+    		ReadUsartAndMessagePut();
+    	}
+
       vbus = INA219_ReadBusVoltage(&ina219);
       vshunt = INA219_ReadShuntVolage(&ina219);
       current = INA219_ReadCurrent(&ina219);
