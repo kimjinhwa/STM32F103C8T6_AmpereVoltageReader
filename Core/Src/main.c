@@ -77,7 +77,6 @@ uint8_t receive_buffer[20];
 uint16_t uartRecieCount=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	//osMessagePut(ModBusInHandle,buffer[iii],0);
 	uartRecieCount++;
 }
 
@@ -412,36 +411,6 @@ void StartDefaultTask(void const * argument)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
       osDelay(50);
 
-      /*  Test for 4 command
-		uint8_t iii=0;
-      	osDelay(1000);
-		buffer[iii++]=0x01;
-		buffer[iii++]=0x04;
-		buffer[iii++]=0x00;
-		buffer[iii++]=0x00;
-		buffer[iii++]=0x00;
-		buffer[iii++]=0x04;
-		buffer[iii++]=0xF1;
-		buffer[iii++]=0xC9;
-		for(iii=0;iii<8;iii++){
-			osMessagePut(ModBusInHandle,buffer[iii],0);
-		}
-		*/
-      /*  Test for 5 command change 485 ID */
-//		uint8_t iii=0;
-//      	osDelay(1000);
-//		buffer[iii++]=0x01;
-//		buffer[iii++]=0x05;
-//		buffer[iii++]=0x00;
-//		buffer[iii++]=0x00;
-//		buffer[iii++]=0x00;
-//		buffer[iii++]=0x02;  // 2로 바꿔라.
-//		buffer[iii++]=0x4c;
-//		buffer[iii++]=0x0b;
-//		for(iii=0;iii<8;iii++){
-//			osMessagePut(ModBusInHandle,buffer[iii],0);
-//		}
-//	  HAL_UART_Transmit_IT_485(&huart1, buffer, iii );
     }
 
     HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
@@ -471,7 +440,7 @@ void StartDefaultTask(void const * argument)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
 	  HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
-      //HAL_UART_Transmit(&huart1, buffer, sizeof(buffer), HAL_MAX_DELAY);
+
       HAL_UART_Transmit_IT(&huart1, buffer, sizeof(buffer) );
       osDelay(1000);
     }
@@ -509,3 +478,34 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
+      /*  Test for 4 command
+		uint8_t iii=0;
+      	osDelay(1000);
+		buffer[iii++]=0x01;
+		buffer[iii++]=0x04;
+		buffer[iii++]=0x00;
+		buffer[iii++]=0x00;
+		buffer[iii++]=0x00;
+		buffer[iii++]=0x04;
+		buffer[iii++]=0xF1;
+		buffer[iii++]=0xC9;
+		for(iii=0;iii<8;iii++){
+			osMessagePut(ModBusInHandle,buffer[iii],0);
+		}
+		*/
+      /*  Test for 5 command change 485 ID */
+//		uint8_t iii=0;
+//      	osDelay(1000);
+//		buffer[iii++]=0x01;
+//		buffer[iii++]=0x05;
+//		buffer[iii++]=0x00;
+//		buffer[iii++]=0x00;
+//		buffer[iii++]=0x00;
+//		buffer[iii++]=0x02;  // 2로 바꿔라.
+//		buffer[iii++]=0x4c;
+//		buffer[iii++]=0x0b;
+//		for(iii=0;iii<8;iii++){
+//			osMessagePut(ModBusInHandle,buffer[iii],0);
+//		}
+//	  HAL_UART_Transmit_IT_485(&huart1, buffer, iii );
