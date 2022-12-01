@@ -1,0 +1,9 @@
+{
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "cmake.configureOnOpen": true,
+  "files.associations": {
+    "cstdio": "c",
+    "ina219.h": "c",
+    "main.h": "c"
+  }
+}
