@@ -448,7 +448,9 @@ void StartDefaultTask(void const * argument)
     for (;;)
     {
     	if( uartRecieCount>0){ // We are received Data from USART
-    		ReadUsartAndMessagePut();
+    		ReadUsartAndMessagePut(); //Read All data and flush buffer
+    		uartRecieCount=0; 		  // start new receive ...waiting...
+    		HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
     	}
 
       vbus = INA219_ReadBusVoltage(&ina219);
