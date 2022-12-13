@@ -66,6 +66,9 @@ void ModBusSendToUartTask(void){
 	}
 }
 
+extern void ReceiveClear();
+extern void ReceiveErrorFromUsart();
+extern void receiveAgain();
 void ModBusTask(void const * argument)
 {
   for(;;)
@@ -76,15 +79,20 @@ void ModBusTask(void const * argument)
       {
         if(mb_buf_in_count > 0) // ok, something in buffer exist, lets parse it
         {
-          mb_reg[0]=* ((uint16_t *) FLASH_USER_START_ADDR);
-		  mb_reg[1]= INA219_ReadBusVoltage(&ina219);
-		  mb_reg[2]= INA219_ReadCurrent(&ina219);
-		  mb_reg[3]= INA219_ReadShuntVolage(&ina219);
+		  mb_reg[0]= INA219_ReadBusVoltage(&ina219);
+		  mb_reg[1]= INA219_ReadCurrent(&ina219);
+		  mb_reg[2]= INA219_ReadShuntVolage(&ina219);
+          mb_reg[3]=* ((uint16_t *) FLASH_USER_START_ADDR);
 	//      vbus = INA219_ReadBusVoltage(&ina219);
 	//      vshunt = INA219_ReadShuntVolage(&ina219);
 	//      current = INA219_ReadCurrent(&ina219);
           ModBusParse();
           ModBusSendToUartTask();
+          //데이타가 남아 있으면 남은 데이타를 싹 비워준다.
+          //ReceiveClear();
+          ReceiveErrorFromUsart();
+          receiveAgain();
+          //ReceiveErrorFromUsart();
         }
       mb_buf_in_count=0;
       }

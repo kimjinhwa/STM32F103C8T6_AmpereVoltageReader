@@ -77,6 +77,8 @@ uint8_t receive_buffer[20];
 uint16_t uartRecieCount=0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+	//receive_buffer[uartRecieCount]  =(uint8_t *)huart->pRxBuffPtr;
+	//HAL_UART_Receive_it(&huart1, &receive_buffer[uartRecieCount],1, 33);
 	uartRecieCount++;
 }
 
@@ -141,6 +143,7 @@ int main(void)
   MX_I2C2_Init();
   // Read 485 Address from flash memory
 
+  //FLASH_Program_485(1);
   int16_t address_485=  * ((uint16_t *) FLASH_USER_START_ADDR);
   if( address_485 >= 0x01 && address_485 < 0x128){
 	  //유효한 데이타이다.
@@ -366,12 +369,22 @@ static void MX_GPIO_Init(void)
  */
 /* USER CODE END Header_StartDefaultTask */
 //extern osMessageQId ModBusInHandle;
+void ReceiveClear(){
+	for(int i=0;i<10;i++) HAL_UART_Receive(&huart1, receive_buffer,1, 33);
+	//HAL_UART_Receive(&huart1, receive_buffer,huart1.RxXferSize-huart1.RxXferCount, 33);
+	//HAL_UART_AbortReceive_IT	(&huart1);
+//	HAL_StatusTypeDef ret;
+//	ret = huart1.RxState ;// HAL_UART_STATE_READY;
+//	while( huart1.RxState != HAL_UART_STATE_READY){
+//			ret=
+//	}
+}
 void ReceiveErrorFromUsart(){
 	while(HAL_OK !=  HAL_UART_Receive(&huart1, receive_buffer,1, 33));
 }
 void ReadUsartAndMessagePut(){
-	uint16_t iPos=0;
-	iPos++;  //We Receive 1 Byte from Rx interrupt
+//	uint16_t iPos=0;
+//	iPos++;  //We Receive 1 Byte from Rx interrupt
 
 	//int16_t address_485=  * ((uint16_t *) FLASH_USER_START_ADDR);
 //	osMessagePut(ModBusInHandle,receive_buffer[iPos++],0);
@@ -385,19 +398,23 @@ void ReadUsartAndMessagePut(){
 //		return;
 //	}
 	// Now We Receive data until timeout reached
-	while(HAL_OK == HAL_UART_Receive(&huart1, (uint8_t *)&receive_buffer[iPos],1, 5)){ // 5 miliscecon
-			iPos++;
-	}
+//	while(HAL_OK == HAL_UART_Receive(&huart1, (uint8_t *)&receive_buffer[iPos],1, 20)){ // 5 miliscecon
+//			iPos++;
+//	}
 
-	for(int iii=0;iii<iPos;iii++){
+	for(int iii=0;iii<8;iii++){
 		osMessagePut(ModBusInHandle,receive_buffer[iii],0);
 	}
 
 }
+//#define TESTDEBUG
+void receiveAgain(){
+  HAL_UART_Receive_IT(&huart1, receive_buffer, 8);
+}
 void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
-	uint8_t buffer[256];
+	//uint8_t buffer[128];
   /* Infinite loop */
 
 
@@ -405,44 +422,51 @@ void StartDefaultTask(void const * argument)
 		//for test code
 
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_RESET);
     // INA219_setPowerMode(&ina219, INA219_CONFIG_MODE_ADCOFF);
 
+#ifdef TESTDEBUG
     while (!INA219_Init(&ina219, &hi2c2, INA219_ADDRESS)){
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_GPIO_TogglePin(DE_485_GPIO_Port, DE_485_Pin);
       osDelay(50);
 
     }
+#endif
 
-    HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
+    HAL_UART_Receive_IT(&huart1, receive_buffer, 8);
     for (;;)
     {
-    	if( uartRecieCount>0){ // We are received Data from USART
+    	if( uartRecieCount>=1){ // We are received Data from USART
     		ReadUsartAndMessagePut(); //Read All data and flush buffer
     		uartRecieCount=0; 		  // start new receive ...waiting...
-    		HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
+    		//HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
     	}
 
+#ifdef TESTDEBUG
       vbus = INA219_ReadBusVoltage(&ina219);
       vshunt = INA219_ReadShuntVolage(&ina219);
       current = INA219_ReadCurrent(&ina219);
+#endif
 
-	  int16_t address_485=0x00;
-	  address_485 =  * ((uint16_t *) FLASH_USER_START_ADDR);
-	  sprintf((char *)buffer,"485Address is  %d\r\n",address_485);
+	  //int16_t address_485;
+	  //address_485 =  * ((uint16_t *) FLASH_USER_START_ADDR);
+	  //memset(buffer,0x00,5);
+	  //memcpy(buffer,"485Address is  %d\r\n",sizeof("485Address is  %d\r\n"));
+	  //sprintf((char *)buffer,"485Address is  %d\r\n",address_485);
 
 	  HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
 	  //HAL_UART_Transmit(&huart1, buffer, sizeof(buffer), HAL_MAX_DELAY);
-	  HAL_UART_Transmit_IT_485(&huart1, buffer, sizeof(buffer) );
-
-      sprintf((char *)buffer,"vbus %d, vshunt %d, current %d\r\n",vbus,vshunt,current);
-      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	  //HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_RESET);
+	  //HAL_UART_Transmit_IT_485(&huart1, buffer, sizeof(buffer) );
+      //sprintf((char *)buffer,"vbus %d, vshunt %d, current %d\r\n",vbus,vshunt,current);
       osDelay(50);
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-	  HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
-
-      HAL_UART_Transmit_IT(&huart1, buffer, sizeof(buffer) );
-      osDelay(1000);
+      //HAL_UART_Transmit_IT(&huart1, buffer, sizeof(buffer) ); // Not going to 485
+      //osDelay(1000);
     }
   /* USER CODE END 5 */
 }
