@@ -18,6 +18,12 @@ address 3 : address
 
 ### 예) 485 ID를 2번으로 아이디를 바꾸고 싶을경우
 **01 05 00 00 00 02 4c 0b**
-
+[사양정보]
+전압범위 : 0~26V
+전류범위 : 40mV/20mohm
+Shunt voltage, 1 LSB step size 10 10 μV
+Current measurement error : ±0.2%
+**Calibrationed : 16V, 400mA, 800mOhm Shunt register**
+INA219_setCalibration_16V_400mA_800mOhm
 
 [check sum calulater](https://crccalc.com/)
