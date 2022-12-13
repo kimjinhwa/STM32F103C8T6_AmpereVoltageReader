@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include  <stdio.h>
+#include <string.h>
 #include "modbus.h"
 /* USER CODE END Includes */
 
@@ -79,7 +80,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	//receive_buffer[uartRecieCount]  =(uint8_t *)huart->pRxBuffPtr;
 	//HAL_UART_Receive_it(&huart1, &receive_buffer[uartRecieCount],1, 33);
-	uartRecieCount++;
+	//uartRecieCount++;
 }
 
 HAL_StatusTypeDef HAL_UART_Transmit_IT_485(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size){
@@ -145,7 +146,7 @@ int main(void)
 
   //FLASH_Program_485(1);
   int16_t address_485=  * ((uint16_t *) FLASH_USER_START_ADDR);
-  if( address_485 >= 0x01 && address_485 < 0x128){
+  if( address_485 >= 0x02 && address_485 <= 128){
 	  //유효한 데이타이다.
   }
   else{
@@ -370,8 +371,12 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 //extern osMessageQId ModBusInHandle;
 void ReceiveClear(){
-	for(int i=0;i<10;i++) HAL_UART_Receive(&huart1, receive_buffer,1, 33);
-	//HAL_UART_Receive(&huart1, receive_buffer,huart1.RxXferSize-huart1.RxXferCount, 33);
+	HAL_StatusTypeDef ret;
+	for(int i=0;i<10;i++) {
+		ret =  HAL_UART_Receive(&huart1, receive_buffer,1, 6);
+		if( ret != HAL_OK) return;
+		osDelay(10);
+	}
 	//HAL_UART_AbortReceive_IT	(&huart1);
 //	HAL_StatusTypeDef ret;
 //	ret = huart1.RxState ;// HAL_UART_STATE_READY;
@@ -380,7 +385,7 @@ void ReceiveClear(){
 //	}
 }
 void ReceiveErrorFromUsart(){
-	while(HAL_OK !=  HAL_UART_Receive(&huart1, receive_buffer,1, 33));
+	while(HAL_OK !=  HAL_UART_Receive(&huart1, receive_buffer,1, 10));
 }
 void ReadUsartAndMessagePut(){
 //	uint16_t iPos=0;
@@ -388,17 +393,13 @@ void ReadUsartAndMessagePut(){
 
 	//int16_t address_485=  * ((uint16_t *) FLASH_USER_START_ADDR);
 //	osMessagePut(ModBusInHandle,receive_buffer[iPos++],0);
-//	if(HAL_OK !=  HAL_UART_Receive(&huart1, receive_buffer,1, 33)){
-//		ReceiveErrorFromUsart();
 //		return;
 //	}
 	// Check ID
 //	if(receive_buffer[0] != address_485 ){
-//		ReceiveErrorFromUsart();
 //		return;
 //	}
 	// Now We Receive data until timeout reached
-//	while(HAL_OK == HAL_UART_Receive(&huart1, (uint8_t *)&receive_buffer[iPos],1, 20)){ // 5 miliscecon
 //			iPos++;
 //	}
 
@@ -409,7 +410,7 @@ void ReadUsartAndMessagePut(){
 }
 //#define TESTDEBUG
 void receiveAgain(){
-  HAL_UART_Receive_IT(&huart1, receive_buffer, 8);
+  //HAL_UART_Receive_IT(&huart1, receive_buffer, 8);
 }
 void StartDefaultTask(void const * argument)
 {
@@ -426,7 +427,7 @@ void StartDefaultTask(void const * argument)
 	HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_RESET);
     // INA219_setPowerMode(&ina219, INA219_CONFIG_MODE_ADCOFF);
 
-#ifdef TESTDEBUG
+#ifndef TESTDEBUG
     while (!INA219_Init(&ina219, &hi2c2, INA219_ADDRESS)){
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
       HAL_GPIO_TogglePin(DE_485_GPIO_Port, DE_485_Pin);
@@ -435,20 +436,34 @@ void StartDefaultTask(void const * argument)
     }
 #endif
 
-    HAL_UART_Receive_IT(&huart1, receive_buffer, 8);
+    //HAL_UART_Receive_IT(&huart1, receive_buffer, 8);
     for (;;)
     {
-    	if( uartRecieCount>=1){ // We are received Data from USART
-    		ReadUsartAndMessagePut(); //Read All data and flush buffer
-    		uartRecieCount=0; 		  // start new receive ...waiting...
-    		//HAL_UART_Receive_IT(&huart1, receive_buffer, 1);
+    	uartRecieCount=0;
+    	if( HAL_OK == HAL_UART_Receive((UART_HandleTypeDef *)&huart1,(uint8_t *)&receive_buffer[uartRecieCount],8, 100))
+    	{
+    		//나의 데이타가 맞으므로 읽는다.
+    		if(receive_buffer[0] == * ((uint16_t *) FLASH_USER_START_ADDR) || receive_buffer[0] == 128){
+    			//uartRecieCount++;
+    			// 1char 1.2ms * 8 = 9.6ms
+				HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+				ReadUsartAndMessagePut(); //Read All data and flush buffer
+				HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    			//}
+    		}
+
+    	}
+    	else {
+    		memset(receive_buffer,0x00,sizeof(receive_buffer));
+    		ReceiveClear();
     	}
 
-#ifdef TESTDEBUG
-      vbus = INA219_ReadBusVoltage(&ina219);
-      vshunt = INA219_ReadShuntVolage(&ina219);
-      current = INA219_ReadCurrent(&ina219);
-#endif
+
+//#ifndef TESTDEBUG
+//      vbus = INA219_ReadBusVoltage(&ina219);
+//      vshunt = INA219_ReadShuntVolage(&ina219);
+//      current = INA219_ReadCurrent(&ina219);
+//#endif
 
 	  //int16_t address_485;
 	  //address_485 =  * ((uint16_t *) FLASH_USER_START_ADDR);
@@ -456,13 +471,13 @@ void StartDefaultTask(void const * argument)
 	  //memcpy(buffer,"485Address is  %d\r\n",sizeof("485Address is  %d\r\n"));
 	  //sprintf((char *)buffer,"485Address is  %d\r\n",address_485);
 
-	  HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
+	  //HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_SET);
 	  //HAL_UART_Transmit(&huart1, buffer, sizeof(buffer), HAL_MAX_DELAY);
 	  //HAL_GPIO_WritePin(DE_485_GPIO_Port, DE_485_Pin, GPIO_PIN_RESET);
 	  //HAL_UART_Transmit_IT_485(&huart1, buffer, sizeof(buffer) );
       //sprintf((char *)buffer,"vbus %d, vshunt %d, current %d\r\n",vbus,vshunt,current);
-      osDelay(50);
-      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      //osDelay(50);
+      //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
       //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
       //HAL_UART_Transmit_IT(&huart1, buffer, sizeof(buffer) ); // Not going to 485

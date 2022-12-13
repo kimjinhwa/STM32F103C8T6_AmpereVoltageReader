@@ -66,9 +66,6 @@ void ModBusSendToUartTask(void){
 	}
 }
 
-extern void ReceiveClear();
-extern void ReceiveErrorFromUsart();
-extern void receiveAgain();
 void ModBusTask(void const * argument)
 {
   for(;;)
@@ -81,7 +78,7 @@ void ModBusTask(void const * argument)
         {
 		  mb_reg[0]= INA219_ReadBusVoltage(&ina219);
 		  mb_reg[1]= INA219_ReadCurrent(&ina219);
-		  mb_reg[2]= INA219_ReadShuntVolage(&ina219);
+		  mb_reg[2]= 0x1234;//INA219_ReadShuntVolage(&ina219);
           mb_reg[3]=* ((uint16_t *) FLASH_USER_START_ADDR);
 	//      vbus = INA219_ReadBusVoltage(&ina219);
 	//      vshunt = INA219_ReadShuntVolage(&ina219);
@@ -90,8 +87,6 @@ void ModBusTask(void const * argument)
           ModBusSendToUartTask();
           //데이타가 남아 있으면 남은 데이타를 싹 비워준다.
           //ReceiveClear();
-          ReceiveErrorFromUsart();
-          receiveAgain();
           //ReceiveErrorFromUsart();
         }
       mb_buf_in_count=0;
@@ -150,10 +145,11 @@ void ModBusParse(void)
       return;
     }
 
-    if(mb_buf_in[0] != mb_addr) // its not our address!
-    {
-      return;
-    }
+    //already checked from USART
+//    if(mb_buf_in[0] != mb_addr) // its not our address!
+//    {
+//      return;
+//    }
     // check CRC
     if(CRC16_IN()==0)
     {
@@ -163,8 +159,6 @@ void ModBusParse(void)
       uint8_t i;
       switch(func)
       {
-        case 3: // read holding registers. by bytes addr func starth startl totalh totall
-          break;
         case 4: // read input registers. by bytes addr func starth startl totalh totall
           st=mb_buf_in[2]*256+mb_buf_in[3];
           nu=mb_buf_in[4]*256+mb_buf_in[5];
