@@ -11,3 +11,6 @@ address 3 : address
 
 ### 예) 485 ID를 2번으로 아이디를 바꾸고 싶을경우
 **01 05 00 00 00 02 4c 0b**
+
+
+[check sum calulater](https://crccalc.com/)
