@@ -114,6 +114,24 @@ void INA219_setCalibration_16V_400mA_800mOhm(INA219_t *ina219)
     INA219_setCalibration(ina219, ina219_calibrationValue);
     INA219_setConfig(ina219, config);
 }
+void INA219_setCalibration_16V_40mA_20mOhm(INA219_t *ina219)
+{
+    uint16_t config = INA219_CONFIG_BVOLTAGERANGE_16V |
+                      INA219_CONFIG_GAIN_1_40MV | INA219_CONFIG_BADCRES_12BIT |
+					  INA219_CONFIG_SADCRES_12BIT_128S_69MS |
+                      INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+
+    // maximum expected current = 30mV/20mOhm 1.5A
+    // nominal 1A
+    // Current_LSB = 1.5/2E15= 45.8uA
+    // Cal = 0.04096/(45.8uA*0.020)= 44716 Let's use 50
+    ina219_calibrationValue = 40960;
+    ina219_currentDivider_mA = 0.5;    // Current LSB = 50uA per bit (1.5/2E15 = 0.5)
+    ina219_powerMultiplier_mW = 1.0f; // Power LSB = 1mW per bit
+
+    INA219_setCalibration(ina219, ina219_calibrationValue);
+    INA219_setConfig(ina219, config);
+}
 
 
 void INA219_setCalibration_16V_400mA(INA219_t *ina219)
